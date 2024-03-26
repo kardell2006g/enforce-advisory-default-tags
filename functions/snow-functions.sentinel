@@ -1,0 +1,41 @@
+# Functions used for Service Now
+
+##### Imports #####
+import "strings"
+import "http"
+import "json"
+
+##### Functions #####
+
+### read_snow_table ###
+# Connect to Service Now and read a table. Results are extracted from the body as a json and unmarshed to a sentinel object.
+retrieve_table = func(address, username, password, table, query_filter) {
+
+	snow_request = http.request("https://" + address + "/api/now/table/" + table + "?" + query_filter)
+	snow_request = snow_request.with_basic_auth(username, password)
+
+	#Make the HTTP request, return the body, convert the json to an object and remove the wrapper
+	snow_table = (json.unmarshal(http.get(snow_request).body)).result
+
+	return snow_table
+}
+
+# Using results of Sentinel Table, check if the workspace has an exception
+policy_exception_check = func(snow_data, sentinel_policy_name, tfe_instance, workspace_id) {
+
+	policy_exception_granted = false
+
+	# loop through each row in the table, to check the policy name, tfe instance and workspace id
+	for snow_data as index, snow_result {
+		if sentinel_policy_name matches snow_result.u_sentinel_policy_name {
+			if tfe_instance matches snow_result.u_tfe_instance {
+				if workspace_id matches snow_result.u_workspace_id {
+					print("Exception has been granted, skipping checks")
+					policy_exception_granted = true
+				}
+			}
+		}
+	}
+
+	return policy_exception_granted
+}
