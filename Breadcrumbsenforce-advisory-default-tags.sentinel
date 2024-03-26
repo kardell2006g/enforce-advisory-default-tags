@@ -1,0 +1,48 @@
+# This policy uses the Sentinel tfplan/v2 import to require that
+# specified AWS resources have all advisory (default) all_tags
+
+# Import common-functions/tfplan-functions/tfplan-functions.sentinel
+# with alias "plan"
+import "tfplan-functions" as plan
+
+# Import aws-functions/aws-functions.sentinel
+# with alias "aws"
+import "aws-functions" as aws
+
+import "tfplan/v2" as tfplan
+
+# Find all resources that have tags_all
+allAWSResourcesWithDefaultTags = aws.find_resources_with_default_tags()
+
+# Find all resources that have standard tags or the tags_all is missing
+allAWSResourcesWithStandardTags = aws.find_resources_with_standard_tags_no_filter()
+
+advisory_tags = [
+	"APMID",
+]
+
+# This will return any resources missing the tags_all
+resourcesWithMissingDefaultTags = plan.filter_attribute_not_contains_list(allAWSResourcesWithDefaultTags,
+	"tags_all", advisory_tags, true)
+
+# This will return any resources that have no tags at all
+resourcesWithoutDefaultAPMIDTag = plan.filter_attribute_is_value(allAWSResourcesWithStandardTags,
+	"tags_all", "null", true)
+
+# Validate Tag: APMID is valid
+resourcesWithInvalidDefaultAPMIDTag = filter allAWSResourcesWithDefaultTags as address, rc {
+	plan.evaluate_attribute(rc, "tags_all.APMID") is not null and
+		plan.evaluate_attribute(rc, "tags_all.APMID") not matches "^APM[0-9]+$"
+}
+
+# Print validation message
+for resourcesWithInvalidDefaultAPMIDTag as address, rc {
+	print("The resource", address, "has an invalid Default APMID tag:", plan.evaluate_attribute(rc, "tags_all.APMID"))
+}
+
+# Main rule
+main = rule {
+	length(resourcesWithMissingDefaultTags["messages"]) is 0 and
+	length(resourcesWithoutDefaultAPMIDTag["messages"]) is 0 and
+	length(resourcesWithInvalidDefaultAPMIDTag) is 0
+}
