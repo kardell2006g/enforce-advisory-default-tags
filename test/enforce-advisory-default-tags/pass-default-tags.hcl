@@ -20,14 +20,14 @@ mock "tfconfig/v2" {
 
 # Functions
 module "tfplan-functions" {
-  source = "../../functions/tfplan-functions/tfplan-functions.sentinel"
+  source = "../../functions/tfplan-functions.sentinel"
 }
 
 module "aws-functions" {
-  source = "../../functions/aws/aws-functions.sentinel"
+  source = "../../functions/aws-functions.sentinel"
 }
 
 module "tfconfig-functions" {
-  source = "../../functions/tfconfig-functions/tfconfig-functions.sentinel"
+  source = "../../functions/tfconfig-functions.sentinel"
 }
 
