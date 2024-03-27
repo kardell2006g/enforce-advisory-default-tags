@@ -1,0 +1,25 @@
+name: Run Sentinel unit tests
+
+on:
+  # Every push will run this action
+  push:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        sentinel-version: [0.23.1, 0.24.1]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup sentinel
+        run: |
+          wget -nv -O sentinel.zip https://releases.hashicorp.com/sentinel/${{ matrix.sentinel-version }}/sentinel_${{ matrix.sentinel-version }}_linux_amd64.zip
+          unzip sentinel.zip
+          chmod +x ./sentinel
+
+      - name: Run all sentinel tests
+        run: |
+          ./sentinel test -verbose ./policies/*
